@@ -1,0 +1,884 @@
+--//Settings
+--[[
+--//Regions:
+"Outerwall"
+"Shallows"
+
+"Yaramo"
+"Mantle"
+
+"Vertigo"
+
+"Midnight"
+
+"Junction"
+
+
+--//Difficulty:
+"very easy"
+"easy"
+"light"
+"normal"
+"extra"
+"hard"
+"very hard"
+
+--//Info
+Can only go if unlocked that region
+Script requires melee weapon equipped
+Execute in lobby and wait 5 seconds
+
+--//Auto Buy
+Auto buy items from shops and vending machines
+Examples:
+
+purchase Health Soda if you have enough money
+{"Sodahealth", 0},
+
+purchase Health Soda if you have 80 or more money
+{"Sodahealth", 80},
+
+--//Path
+Choose Region to go after finished Outerwall or Shallows
+Currently, "Yaramo" or "Mantle"
+]]
+local ToggleKey = Enum.KeyCode.L
+local Settings = {
+    Region = "Midnight", -- Dive starting region, specified region need to be unlocked first
+    LeaveAtRegion = "Midnight", -- nil for completing until Dreams, put your desired area if you want to leave at specify area example "Shallows"
+    Difficulty = "very easy",
+    Special = false, 
+    NextRegion = true, -- Keep it true so you can synced all the items from the dive
+    AutoSell = true,
+    TempFarm = false, -- Pillar Farm and SYNC farm
+	RarityFilterGear = "Alpha", -- Examples: "Pristine" Ignores Pristine and above, "Legendary" Ignores Legendary and above. Filters: Pristine, Experimental, Legendary, Alpha, Omega, Core
+	RarityFilterGun = "Omega",
+	Path = {
+		"Yaramo" --"Yaramo" or "Mantle"
+	},
+	MeleeSlot = 1, --For Auto Equip
+	GearSlots = {2, 3}, --For Auto Use
+	AutoUseShardMachine = true,
+	AutoUseMedicalMachine = true,
+	AutoUseMedicalMachineHP = .5, --Example: .5, Use Medical Vending Machine when hp lower than 50% of max hp
+	AutoBuy = true,
+	AutoBuyItem = {
+		{"FieRamen", 0},
+		{"FieMilk", 0},
+		{"FieDango", 80},
+		{"FieBar", 0},
+		{"YaramoWich", 0},
+		{"YaramoIcecream", 0},
+		{"YaramoYogurt", 0},
+		{"VertigoMask", 0},
+		{"VertigoNotebook", 0},
+		{"MocoSodahealth", 0},
+		{"MocoSodaattack", 0},
+		{"MocoSodaresist", 0},
+		{"MocoSodagear", 0},
+		{"MocoSodaomni", 0},
+		{"MocoSnackwich", 120},
+		{"MocoSnackbanana", 60}
+	},
+}
+local RarityTable = {
+	["Scrap"] = 0,
+	["Basic"] = 156,
+	["Common"] = 356,
+	["Uncommon"] = 619,
+	["Unique"] = 744,
+	["Rare"] = 844,
+	["Pristine"] = 914,
+	["Experimental"] = 959,
+	["Legendary"] = 984,
+	["Alpha"] = 994,
+	["Omega"] = 999,
+	["Core"] = 1000,
+}
+
+--//Auto Return to Hub incase some issues happened
+task.spawn(function()
+	if not game:IsLoaded() then game.Loaded:Wait() end
+	if game.PlaceId == 8256771516 then
+		wait(60)
+		game:GetService("TeleportService"):Teleport(8256771516)
+	elseif game.PlaceId == 8256772699 then
+		wait(25)
+		if workspace:FindFirstChild("Dungeon") then
+			wait(875)
+		end
+		game:GetService("TeleportService"):Teleport(8256771516)
+	end
+end)
+print("Auto Return to Hub Started")
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+if game.PlaceId ~= 8256771516 and game.PlaceId ~= 8256772699 then
+    return 
+end
+
+local wait, spawn = task.wait, task.spawn
+local rs = game.ReplicatedStorage
+local lp = game.Players.LocalPlayer
+local reg = rs.Ints.Regiontrig
+local pur = rs.Ints.Purchasecontrol
+
+if lp.PlayerGui:FindFirstChild("Intro") then
+    local intro, t, conn = lp.PlayerGui.Intro, coroutine.running()
+    conn = intro:GetPropertyChangedSignal("Parent"):Connect(function()
+		coroutine.resume(t)
+		conn:Disconnect()
+    end)
+    coroutine.yield()
+end
+function Press(Path)
+	for i,v in pairs(getconnections(Path)) do
+		v:Function();
+	end
+end
+if game.PlaceId == 8256771516 then
+    --//Services
+    local HttpService = game:GetService("HttpService");
+	local Difficultytbl = {
+		["very easy"] = -3,
+		["easy"] = -2,
+		["light"] = -1,
+		["normal"] = 0,
+		["extra"] = 1,
+		["hard"] = 2,
+		["very hard"] = 3,
+		["crucible"] = 4,
+	}
+
+    function saveSettings()
+        local savedTable = HttpService:JSONEncode(Settings);
+
+        writefile("NK_Settings.json", savedTable);
+        Settings = HttpService:JSONDecode(readfile("NK_Settings.json"));
+    end
+
+    saveSettings();
+	
+	wait(5)
+	if Settings.AutoSell then
+		Press(lp.PlayerGui.Inventory.Buttons.Inventory.Item.Button.MouseButton1Click)
+		wait(.5)
+		Press(lp.PlayerGui.Inventory.Buttons.Exit.Exit.MouseButton1Click)
+		game.Lighting.Blur.Enabled = false
+		for _,v in pairs(lp.Guns:GetChildren()) do
+			if v:FindFirstChild("Slot") and v.Slot.Value == 0 then
+
+				if Settings.RarityFilterGun ~= nil and Settings.RarityFilterGun ~= "" then
+					if lp.Sessionstats.Guncache:FindFirstChild(v.Name) and lp.Sessionstats.Guncache:FindFirstChild(v.Name).Stats.Tags.Raritynum.Value < RarityTable[Settings.RarityFilterGun] then
+						pur:InvokeServer("Sellgun", v)
+					end
+				end
+
+				if Settings.RarityFilterGun == nil or Settings.RarityFilterGun == "" then
+					pur:InvokeServer("Sellgun", v)
+				end
+			end
+			wait()
+		end
+
+		for _,v in pairs(lp.Gear:GetChildren()) do
+			if v:FindFirstChild("Slot") and v.Slot.Value == 0 then
+
+				if Settings.RarityFilterGear ~= nil and Settings.RarityFilterGear ~= "" then
+					if lp.Sessionstats.Guncache:FindFirstChild(v.Name) and lp.Sessionstats.Guncache:FindFirstChild(v.Name).Stats.Tags.Raritynum.Value < RarityTable[Settings.RarityFilterGear] then
+						pur:InvokeServer("Sellgun", v)
+					end
+				end
+
+				if Settings.RarityFilterGear == nil or Settings.RarityFilterGear == "" then
+					pur:InvokeServer("Sellgun", v)
+				end
+			end
+			wait()
+		end
+	end
+	
+    --//Teleport
+    local Run = lp.PlayerGui.Run
+	local Close = Run.Runsummary.Main.Close
+    if not workspace:FindFirstChild("Dungeon") and not Close.Visible then
+		local t, conn = coroutine.running()
+		conn = Close:GetPropertyChangedSignal("Visible"):Connect(function()
+			if Close.Visible then
+				coroutine.resume(t)
+				conn:Disconnect()
+			end
+		end)
+		coroutine.yield()
+        --repeat wait(.1) until Run.Runsummary.Main.Close.Visible == true
+    end
+    --[[//Tables
+    local Settings = {};
+
+    --//Services
+    local HttpService = game:GetService("HttpService");
+
+    --//Functions
+    function loadSettings()
+        if isfile("NK_Settings.json") then
+        Settings = HttpService:JSONDecode(readfile("NK_Settings.json"));
+        end
+    end
+
+    function saveSettings()
+        local savedTable = HttpService:JSONEncode(Settings);
+
+        writefile("NK_Settings.json", savedTable);
+        Settings = HttpService:JSONDecode(readfile("NK_Settings.json"));
+    end
+	
+    --///Setup
+    loadSettings();]]
+
+    if Settings.Region == nil then
+        error("No Region Specified");
+    end
+
+    if Settings.Difficulty == nil then
+        error("No Difficulty Specified");
+    end
+
+    if Settings.Special == nil then
+        error("Please specify Special");
+    end
+
+    local MT = getrawmetatable(game);
+    setreadonly(MT, false);
+
+    local Old = MT.__namecall;
+
+    MT.__namecall = newcclosure(function(self, ...)
+        local Method = getnamecallmethod();
+        local Args = {...};
+
+        if Method == "FireServer" and self.Name == "Regiontrig" and Args[1] == "Lobby" then
+            Args[2]["Region"] = Settings.Region;
+            Args[2]["Difflevel"] = math.max(0, lp.Stats.Level.Value + Difficultytbl[Settings.Difficulty]);
+            Args[2]["Payment"] = "None";
+            Args[2]["Special"] = Settings.Special;
+        end
+
+        return Old(self, unpack(Args))
+    end)
+    repeat
+        Press(Close.Button.MouseButton1Click);
+        wait(1); 
+    until not Run.Runsummary.Visible
+	wait(1)
+    Press(lp.PlayerGui.Game.Relax.Equip.Subframe.Run.Button.MouseButton1Click);
+    wait(1.47);
+    Press(Run.Runsetup.Setup.Choices.Quickstart.Button.MouseButton1Click);
+    wait(4);
+    reg:FireServer("Start", Run.Setup.Lobby.Value);
+	print("Main Started")
+elseif game.PlaceId == 8256772699 then
+    local Character = lp.Character:WaitForChild("Playermodel"):WaitForChild("Charmodel");
+    local HRP = Character:WaitForChild("HumanoidRootPart");
+	local ShopItems = {}
+	local ts = game:GetService("TweenService")
+	local last
+	local Money = lp.Stats.Money
+	local ActiveStatus = {}
+	local Health, MaxHealth = lp.PlayerGui.Game.Action.Loot.Healthnum, lp.PlayerGui.Game.Action.Loot.Healthmaxnum
+	
+	local function tp(obj, to)
+		obj.CFrame = to
+		--[[if last then
+			last:Cancel()
+		end
+		print(obj, to)
+		last = ts:Create(obj, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 1, false, 0), {CFrame = to})]]
+	end
+
+    if workspace:FindFirstChild("Live") then
+        return
+    end
+
+    --//Tables
+    --local Settings = {};
+    local Used = {};
+
+    --//Cooldowns
+    local lastAttack = tick();
+
+    --//Globals
+    _G.Autofarm = true;
+
+    if _G.Autofarm == false then
+        return
+    end
+
+    --//Services
+    local UIS = game:GetService("UserInputService");
+    local VIM =  game:GetService("VirtualInputManager");
+    local Debris = game:GetService("Debris");
+    local HttpService = game:GetService("HttpService");
+
+    --//Setup
+	local Live
+	if not workspace:FindFirstChild("Live") then
+		Live = Instance.new("Folder");
+		Live.Name = "Live";
+		Live.Parent = workspace;
+	else
+		Live = workspace.Live
+	end
+
+    local Explosions = Instance.new("Folder");
+    Explosions.Name = "Explosions";
+    Explosions.Parent = workspace;
+
+    --//Toggle
+    UIS.InputBegan:Connect(function(Key)
+        if Key.KeyCode == ToggleKey then
+            _G.Autofarm = not _G.Autofarm;
+        end
+    end)
+	
+	local function checkHealth(tre)
+		local hp, maxhp = tonumber(string.split(Health.Text, "+")[2]), tonumber(string.split(MaxHealth.Text, " ")[3])
+		if hp < maxhp * tre then
+			return true
+		end
+		return false
+	end
+	
+    function getClosestMob()
+        local closestMob = nil;
+        local lastDistance = math.huge;
+        lastPart = nil;
+
+        for _, Mob in pairs(Live:GetChildren()) do
+            if Mob:FindFirstChild("Tags") and (Mob:FindFirstChild("Hitbox") or Mob:FindFirstChild("Base") or Mob:FindFirstChild("HumanoidRootPart") or Mob:FindFirstChild("Main")) then
+
+                local canContinue = true;
+
+                if Mob:FindFirstChild("Status") and Mob:FindFirstChild("Status"):FindFirstChild("Debuff_Invincible") and closestMob ~= nil then
+                    canContinue = false;
+                end
+
+                if canContinue == true then
+
+					lastPart = Mob:FindFirstChild("Hitbox") or Mob:FindFirstChild("Base") or Mob:FindFirstChild("HumanoidRootPart") or Mob:FindFirstChild("Main")
+
+					local currentDistance = (HRP.Position - lastPart.Position).Magnitude;
+					
+					if closestMob ~= nil and (currentDistance < lastDistance or closestMob:FindFirstChild("Status") and closestMob:FindFirstChild("Status"):FindFirstChild("Debuff_Invincible")) then
+						closestMob = Mob;
+						lastDistance = currentDistance;
+					elseif closestMob == nil then
+						closestMob = Mob;
+						lastDistance = currentDistance;
+					end
+				end
+			end
+		end
+
+        if closestMob ~= nil then
+            lastPart = closestMob:FindFirstChild("Hitbox") or closestMob:FindFirstChild("Base") or closestMob:FindFirstChild("HumanoidRootPart") or closestMob:FindFirstChild("Main");
+        end
+        
+        return closestMob, lastPart
+    end
+
+    function pressKey(Key, Hold)
+        VIM:SendKeyEvent(Hold, Key, false, game);
+    end
+
+    function checkChests()
+        for _, Chest in pairs(workspace.Dungeon:GetDescendants()) do
+            if (findName(Chest.Name, "chest") or (findName(Chest.Name, "_medical") and not findName(Chest.Name, "machine") and checkHealth(.8)) or --[[findName(Chest.Name, "_ammo") and not findName(Chest.Name, "machine") or]] findName(Chest.Name, "locker") or findName(Chest.Name, "workbox")) and 
+            (Chest:FindFirstChild("Interact") and Chest:FindFirstChild("Interact"):IsA("BasePart") or
+            Chest:FindFirstChild("Chest") and Chest:FindFirstChild("Chest"):IsA("BasePart")) and not Chest:FindFirstChild("Opened") then
+
+                local Part = Chest:FindFirstChild("Interact") or Chest:FindFirstChild("Chest");
+                
+                tp(HRP, Part.CFrame)--HRP.CFrame = Part.CFrame;
+
+                local Distance = (HRP.Position - Part.Position).Magnitude;
+
+                repeat wait() Distance = (HRP.Position - Part.Position).Magnitude until Distance <= 4
+
+                --local Times = findName(Chest.Name, "chest") and 30 or 10
+
+                if Part.Name == "Interact" then
+                    Part.Purchase:FireServer()
+                else
+                    rs.Ints.Interactcontrol:InvokeServer("Chestopen", Chest)
+                end
+
+                local Opened = Instance.new("Folder");
+                Opened.Name = "Opened";
+                Opened.Parent = Chest;
+
+                wait(1.47);
+            end
+        end
+
+        return true
+    end
+
+    function passRoom(Door)
+        local Part = Door:FindFirstChild("Interact") or Door:FindFirstChild("Part")
+        if Part == nil then
+            Part = Door:FindFirstChildWhichIsA("BasePart");
+        end
+        tp(HRP, Part.CFrame)--HRP.CFrame = Part.CFrame;
+
+        wait();
+        game.ReplicatedStorage.Ints.Regiontrig:FireServer("Door", Door);
+    end
+
+    function checkRoom()
+        local Empty = false;
+        local Door = nil;
+        
+        for _, v in pairs(workspace.Dungeon:GetDescendants()) do
+            if findName(v.Name, "shrine") and v.Name ~= "Shrine" and v:FindFirstChildWhichIsA("BasePart") and v:FindFirstChildWhichIsA("BasePart").Name == "Interact" then
+				tp(HRP, v:FindFirstChildWhichIsA("BasePart").CFrame)--HRP.CFrame = v:FindFirstChildWhichIsA("BasePart").CFrame;
+				wait(0.1);
+				v:FindFirstChildWhichIsA("BasePart").Purchase:FireServer();
+				wait(1);
+				v:Destroy();
+			elseif v.Name == "Midnight_Shrineend" and v:FindFirstChild("Interact") then
+				tp(HRP, v:FindFirstChild("Interact").CFrame) --HRP.CFrame = v:FindFirstChild("Interact").CFrame;
+				wait(0.1);
+				v:FindFirstChild("Interact").Purchase:FireServer();
+				wait(14);
+				v:Destroy();
+			elseif v:IsA("IntValue") and not v:GetAttribute("Purchased") and v:FindFirstAncestor("Interact") and Settings.AutoBuy and v:FindFirstAncestor("Offerings") then
+				local re = v.Parent.Parent.Purchase
+				
+				for _,item in next, Settings.AutoBuyItem do
+					local a = item[2] > 0 and item[2] or v.Value
+					--print("2", item[1], item[2], v, v.Value, a, Money.Value)
+					if findName(v.Name, item[1]) and Money.Value >= a then
+						tp(HRP, v.Parent.Parent.CFrame)--HRP.CFrame = v.Parent.Parent.CFrame
+						wait(.1)
+						--print("\n 2 Purchase", item[1], item[2], v, v.Value, a, Money.Value, "\n")
+						re:FireServer(v)
+						v:SetAttribute("Purchased", true)
+						break
+					end
+				end
+				
+				wait(.1)
+			elseif Settings.AutoUseShardMachine and v.Name == "Machine_Shardmachine" and v:FindFirstChild("Interact") and Money.Value >= v.Interact.Cost.Value then
+				tp(HRP, v.Interact.CFrame)
+				wait(.1)
+				v.Interact.Purchase:FireServer()
+				wait(1)
+				v.Name = "Used Machine_Shardmachine"
+			elseif Settings.AutoUseMedicalMachine and v.Name == "Machine_Healthmachine" and v:FindFirstChild("Interact") and checkHealth(Settings.AutoUseMedicalMachineHP) and Money.Value >= v.Interact.Cost.Value then
+				tp(HRP, v.Interact.CFrame)
+				wait(.1)
+				v.Interact.Purchase:FireServer()
+				wait(3)
+				v.Name = "Used Machine_Healthmachine"
+			elseif v.Name == "Nextroomind" and v.Enabled == true then
+                Empty = true;
+                Door = v.Parent;
+            end
+        end
+		
+		--//Auto get "Something Extra" (from skill Sustain Something Extra)
+		for i,v in next, workspace:GetChildren() do
+			if v.Name == "General_Extra" then
+				tp(HRP, v:FindFirstChildWhichIsA("BasePart").CFrame) --HRP.CFrame = v:FindFirstChildWhichIsA("BasePart").CFrame
+				wait(0.1);
+				v:FindFirstChild("Interact").Purchase:FireServer();
+				wait(1);
+				v:Destroy();
+			end
+		end
+
+        return Empty, Door
+    end
+
+    function collectBundles()
+        for _, Bundle in pairs(lp.Character:GetChildren()) do
+            if Bundle.Name == "Pickup" and Bundle:FindFirstChild("Pickupbase") then
+                Bundle.Pickupbase.CFrame = HRP.CFrame
+            end
+        end
+    end
+
+    function getYLevel()
+        local Y = 1.7;
+        if Explosions:FindFirstChild("ExplodingBarrel") then
+            Y = 40;
+        end
+
+        return Y
+    end
+	
+	function getPillars()
+		for i, v in pairs(workspace.Dungeon:GetDescendants()) do
+			if v:IsA("Model") then
+				if string.find(v.Name, "Truepillar") and v:FindFirstChild("Interact") then
+					HRP.CFrame = v.Interact.CFrame
+					wait(0.1)
+					v.Interact.Purchase:FireServer()
+					wait(1)
+				elseif string.find(v.Name, "Purgepillar") and v:FindFirstChild("Interact") then
+					HRP.CFrame = v.Interact.CFrame
+					wait(.1)
+					v.Interact.Purchase:FireServer()
+					wait(1)
+					v.Interact.Name = "Used"
+					break
+				end
+			end
+		end
+	end
+	
+	local sb = lp.PlayerGui.Game.Action.Loot.Statusbar
+	local randomtp = true
+	if rs.World.Dungeondata.Location.Value == "Temp" then
+		function startFarm()
+			collectBundles();
+			local isRoomEmpty, Door = checkRoom();
+			if isRoomEmpty == true and Door ~= nil then
+				passRoom(Door)
+			end
+			for i,v in next, workspace.Dungeon:GetDescendants() do
+				if findName(v.Name, "keepsakereward") and v:FindFirstChild("Interact") and lp.Ext:FindFirstChild("Run_Truecontained") and lp.Ext.Run_Truecontained.Value >= 10 then
+					tp(HRP, v.Interact.CFrame)
+					wait(.1)
+					v.Interact.Purchase:FireServer()
+					wait(1)
+					v.Interact.Name = "Used"
+				end
+			end
+			for i,v in next, workspace.Dungeon:GetDescendants() do
+				if findName(v.Name, "purgereward") and v:FindFirstChild("Interact") and lp.Ext:FindFirstChild("Run_Truecontained") then
+					tp(HRP, v.Interact.CFrame)
+					for i=1, lp.Ext.Run_Truecontained.Value do
+						wait(.1)
+						v.Interact.Purchase:FireServer()
+					end
+					wait(2)
+					v.Interact.Name = "Used"
+				end
+			end
+			if not lp.Ext:FindFirstChild("Run_Truecontained") or lp.Ext.Run_Truecontained.Value == 0 then
+				reg:FireServer("Leave")
+			end
+		end
+	else
+		function startFarm()
+			collectBundles();
+			local closestMob, Part = getClosestMob();
+			local targeted = false
+			for i,v in next, sb:GetDescendants() do
+				if v:IsA("TextLabel") and findName(v.Text, "target") then
+					targeted = true
+				end
+			end
+			for _, v in pairs(workspace.Dungeon:GetDescendants()) do
+				if Settings.AutoUseMedicalMachine and v.Name == "Machine_Healthmachine" and v:FindFirstChild("Interact") and checkHealth(Settings.AutoUseMedicalMachineHP) and Money.Value >= v.Interact.Cost.Value then
+					tp(HRP, v.Interact.CFrame)
+					wait(.1)
+					v.Interact.Purchase:FireServer()
+					wait(2)
+					v.Name = "Used Machine_Healthmachine"
+				end
+			end
+			if targeted then
+				HRP.CFrame = CFrame.new(HRP.CFrame.X, HRP.CFrame.Y + 3, HRP.CFrame.Z)
+			elseif Live:FindFirstChild("Junction_Heart") and randomtp then
+				if randomtp then
+					local cf = Part.CFrame
+					tp(HRP, CFrame.new(cf.X + math.random(-60, 60), cf.Y + math.random(30, 70), cf.Z + math.random(-60, 60)))--HRP.CFrame = CFrame.new(cf.X + math.random(-60, 60), cf.Y + math.random(30, 70), cf.Z + math.random(-60, 60))
+				end
+				if Live:FindFirstChild("Junction_Heart"):FindFirstChild("Interact") then
+					tp(HRP, Part.CFrame * CFrame.new(0, 0, 3))--HRP.CFrame = Part.CFrame * CFrame.new(0, 0, 3)
+					wait(.1)
+					Live.Junction_Heart.Interact.Purchase:FireServer();
+					Live.Junction_Heart.Interact.Name = "Used";
+				end
+			elseif closestMob ~= nil then
+				tp(HRP, Part.CFrame * CFrame.new(0, 0, 3)) --HRP.CFrame = Part.CFrame * CFrame.new(0, 0, 3);
+				Attack(Part);
+			else
+				--[[local Y = getYLevel();
+				if Y == 40 then
+					--HRP.CFrame = HRP.CFrame * CFrame.new(0, Y, 0);
+				end]]
+				local isRoomEmpty, Door = checkRoom();
+
+				if isRoomEmpty == true and Door ~= nil then
+					checkChests();
+					passRoom(Door)
+					if Settings.TempFarm then
+						getPillars()
+					end
+				end
+			end
+		end
+	end
+
+	
+	local ab = {"[Z]", "[X]", "[C]"}
+	local Active = {}
+	for i,v in next, lp.Gear:GetChildren() do
+		if not table.find(Settings.GearSlots, v.Slot.Value) then
+			continue
+		end
+		local cdui
+		for _,v2 in next, lp.PlayerGui.Game.Action.Equip.Subframe.Gear:GetChildren() do
+			if v2.Name == "Gear" and v2.Container.Activate.Text == ab[v.Slot.Value] then
+				cdui = v2.Container.Title.Half
+			end
+		end
+		Active[v.Slot.Value] = {lp.Sessionstats.Gearbar[v.Name], cdui}
+	end
+	
+    function Attack(lastPart)
+        local Distance = (HRP.Position - lastPart.Position).Magnitude;
+
+		for i,v in next, Active do
+			if v[2].Visible then
+				lp.Character.Gunmain.Gearinput:FireServer(string.format("Activate%d", i), v[1], HRP.CFrame, math.random(0, 1000))
+			end
+		end
+
+        if Distance <= 10 and tick() - lastAttack > 0.1 then
+            lp.Character.Gunmain.Guninput:FireServer(
+                "Melee",
+                tick(),
+                HRP.CFrame,
+                math.random(0, 1000),
+                1,
+                {},
+                false
+            )
+            
+            lp.Character.Gunmain.Guninput:FireServer(
+                "Melee",
+                tick(),
+                HRP.CFrame,
+                math.random(0, 1000),
+                2,
+                {},
+                true
+            )
+            lastAttack = tick();
+        end
+        
+    end
+
+    function findName(Name, Find)
+        return string.find(string.lower(Name), string.lower(Find))
+    end
+
+    function updateMobs()
+        for _, Mob in pairs(workspace.Dungeon:GetDescendants()) do
+            if Mob:FindFirstChild("Tags") and Mob:FindFirstChild("Stats") and not findName(Mob.Name, "barrel") and not findName(Mob.Name, "propane") and not findName(Mob.Name, "sludge") and not findName(Mob.Name, "cannon") and not findName(Mob.Name, "firepad") and not findName(Mob.Name, "conveyor") and not findName(Mob.Name, "sidepress") and not findName(Mob.Name, "pressfast") and Mob.Name ~= "Mantle_Shooter" then
+                Mob.Parent = Live;
+            elseif findName(Mob.Name, "barrel") then
+                if Mob:FindFirstChild("Explosivedeath") then
+                    
+                    if #Explosions:GetChildren() <= 3 then
+						local Explosion = Instance.new("Folder");
+						Explosion.Name = "ExplodingBarrel";
+						Explosion.Parent = Explosions;
+						Debris:AddItem(Explosion, 1);
+                    end
+
+                    spawn(function()
+                        wait(1)
+                        if Mob and Mob:FindFirstChild("Explosivedeath") then
+                            Mob.Explosivedeath:Destroy();
+                        end
+                    end)
+
+                end
+            end
+        end
+		for i,v in next, workspace.Live:GetChildren() do
+			if v:FindFirstChild("Stats") and v.Stats:FindFirstChild("Dead") and v.Stats.Dead.Value then
+				v:Destroy()
+			end
+		end
+    end
+
+    --//Update
+    spawn(function()
+        while true do
+            spawn(function()
+				updateMobs();
+            end)
+            wait(0.17);
+        end
+    end)
+
+    --//Farm
+    spawn(function()
+        while true do
+            if _G.Autofarm == true then
+                startFarm();
+            end
+            wait();
+        end
+    end)
+	
+	
+	--//Auto Purchase Item
+	rs.World.Dungeondata.Shopitems.Generic.ChildAdded:Connect(function(v)
+		if Settings.AutoBuy then
+			wait(1)
+			for _,item in next, Settings.AutoBuyItem do
+				local a = item[2] > 0 and item[2] or v.Value
+				--print("1", item[1], item[2], v, v.Value, a, Money.Value)
+				if findName(v.Name, item[1]) then
+					if Money.Value >= a then
+						--print("\n 1 Purchase", item[1], item[2], v, v.Value, a, Money.Value, "\n")
+						reg:FireServer("Purchase", v)
+						break
+					else
+						table.insert(ShopItems, v)
+					end
+				end
+			end
+		end
+	end)
+	
+	Money:GetPropertyChangedSignal("Value"):Connect(function()
+		for i,v in next, ShopItems do
+			if Money.Value >= v.Value then
+				reg:FireServer("Purchase", v)
+				ShopItems[i] = nil
+				break
+			end
+		end
+	end)
+	
+    --//Auto Pickup
+    workspace.ChildAdded:Connect(function(Child)
+        repeat 
+			wait()
+			if Child.Name == "Lootbundle" and _G.Autofarm == true then
+				if Child:FindFirstChild("Shard") then
+					Child.Shard.Purchase:FireServer()
+				else
+					rs.Ints.Interactcontrol:InvokeServer(
+						"Gunopen",
+						"Unequip",
+						Child:GetChildren()[1],
+						"Gunitem"
+					)
+				end
+			end
+        until Child.Parent == nil
+    end)
+	
+	--//Auto Sell
+	if Settings.AutoSell then
+		spawn(function() -- Autosell
+			Press(lp.PlayerGui.Inventory.Buttons.Inventory.Item.Button.MouseButton1Click)
+			wait(.5)
+			Press(lp.PlayerGui.Inventory.Buttons.Exit.Exit.MouseButton1Click)
+			game.Lighting.Blur.Enabled = false
+			for _,v in pairs(lp.Guns:GetChildren()) do
+				if v:FindFirstChild("Slot") and v.Slot.Value == 0 then
+
+					if Settings.RarityFilterGun ~= nil and Settings.RarityFilterGun ~= "" then
+						if lp.Sessionstats.Guncache:FindFirstChild(v.Name) and lp.Sessionstats.Guncache:FindFirstChild(v.Name).Stats.Tags.Raritynum.Value < RarityTable[Settings.RarityFilterGun] then
+							rs.Ints.Purchasecontrol:InvokeServer("Sellgun", v)
+						end
+					end
+
+					if Settings.RarityFilterGun == nil or Settings.RarityFilterGun == "" then
+						game.ReplicatedStorage.Ints.Purchasecontrol:InvokeServer("Sellgun", v)
+					end
+				end
+				wait()
+			end
+
+			for _,v in pairs(lp.Gear:GetChildren()) do
+				if v:FindFirstChild("Slot") and v.Slot.Value == 0 then
+
+					if Settings.RarityFilterGear ~= nil and Settings.RarityFilterGear ~= "" then
+						if lp.Sessionstats.Guncache:FindFirstChild(v.Name) and lp.Sessionstats.Guncache:FindFirstChild(v.Name).Stats.Tags.Raritynum.Value < RarityTable[Settings.RarityFilterGear] then
+							rs.Ints.Purchasecontrol:InvokeServer("Sellgun", v)
+						end
+					end
+
+					if Settings.RarityFilterGear == nil or Settings.RarityFilterGear == "" then
+						game.ReplicatedStorage.Ints.Purchasecontrol:InvokeServer("Sellgun", v)
+					end
+				end
+				wait()
+			end
+		end)
+	end
+	
+    --//Rejoin
+	local dead = lp.PlayerGui.Run.Dead.Return
+    dead:GetPropertyChangedSignal("Visible"):Connect(function()
+        if dead.Visible then
+            wait(1.7);
+			reg:FireServer("Leave");
+        end
+    end)
+
+    --//Finished Run
+	local runend = lp.PlayerGui.Run.Runend.Return
+	local loctolevel = {["Outerwall"] = 1, ["Shallows"] = 1, ["Yaramo"] = 2, ["Mantle"] = 2, ["Vertigo"] = 3, ["Midnight"] = 4, ["Junction"] = 5}
+    runend:GetPropertyChangedSignal("Visible"):Connect(function()
+        if runend.Visible then
+            wait(1.7);
+			if Settings.NextRegion == false or (rs.World.Dungeondata.Location.Value == "Junction" and Settings.TempFarm == false) or (Settings.LeaveAtRegion ~= nil and Settings.LeaveAtRegion ~= "") and rs.World.Dungeondata.Location.Value == Settings.LeaveAtRegion then
+				reg:FireServer("Leave");
+			else
+				local loc = rs.World.Dungeondata.Location.Value
+				local level = loctolevel[loc]
+				if level and Settings.Path[level] then
+					reg:FireServer("Votenext", Settings.Path[level])
+				else
+					reg:FireServer("Votenext")
+				end
+            end
+        end
+    end)
+	
+	--//Turn off Junction Heart random tp after 3 mins
+	Live.ChildAdded:Connect(function(v)
+		if v.Name == "Junction_Heart" then
+			wait(200)
+			randomtp = false
+		end
+	end)
+	
+	--//Equip Melee Weapon if not Equipped
+    spawn(function()
+        local melee = lp.PlayerGui:WaitForChild("Game"):WaitForChild("Action"):WaitForChild("Equip"):WaitForChild("Subframe"):WaitForChild("Nameframe"):WaitForChild("Mname")
+        if melee.Visible then
+            return
+        end
+        local sword = lp.Gear
+        for i,v in next, sword:GetChildren() do
+            if v.Slot and v.Slot.Value == Settings.MeleeSlot then
+                sword = v
+                break
+            end
+        end
+		
+		if sword then
+			local char = lp.Character
+			char.Gunmain.Gearinput:FireServer(
+				string.format("Activate%d", Settings.MeleeSlot), 
+				lp.Sessionstats.Gearbar:FindFirstChild(sword.Name), 
+				HRP.CFrame,
+				math.random(0, 1000)
+			)
+		end
+    end)
+	print("Main Started")
+end
