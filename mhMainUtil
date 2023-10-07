@@ -1,0 +1,557 @@
+local plr = game.Players.LocalPlayer
+local tycoon
+for i,v in pairs(game.Workspace:GetDescendants()) do
+if v:IsA("StringValue") and v.Value == tostring(plr.Name) then
+tycoon = v.Parent
+end
+end
+tycoon.AdjustSpeed.Value = 10
+
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "SXC | MinersHaven",
+    LoadingTitle = "MinersHaven",
+    LoadingSubtitle = "By 4has",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "sxc",
+        FileName = "sxc"
+    },
+
+})
+
+Rayfield:Notify("Super Loaded", "loaded in ", 4483362458) -- Notfication -- Title, Content, Image
+
+local Tab = Window:CreateTab("Farms ", 4483362458)        -- Title, Image
+local Section = Tab:CreateSection("Farms")
+local Button = Tab:CreateButton({
+    Name = "Save Layout2",
+    Callback = function()
+        local args = {
+            [1] = "Save",
+            [2] = "Layout2"
+        }
+
+        game:GetService("ReplicatedStorage"):WaitForChild("Layouts"):InvokeServer(unpack(args))
+    end,
+})
+local Button = Tab:CreateButton({
+    Name = "Rebirth",
+    Callback = function()
+        local args = {
+            [1] = 26
+        }
+
+        game:GetService("ReplicatedStorage"):WaitForChild("Rebirth"):InvokeServer(unpack(args))
+    end,
+})
+
+_G.remote = false
+
+function remote()
+    spawn(function()
+        if _G.remote == true then
+            wait(0.1)
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteDrop"):FireServer()
+        end
+    end)
+end
+
+local isRunning = false  -- Flag variable to track the toggle state
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto remote Fire",
+    CurrentValue = false,
+    Flag = "autoremoter",
+    Callback = function(Value)
+        isRunning = Value  -- Update the flag variable
+        
+        while isRunning do
+            wait(0.1)
+            _G.remote = true
+            remote()
+        end
+    end,
+})
+
+
+local tcy = game.Workspace.Tycoons:GetChildren()
+local plr = game.Players.LocalPlayer.Name
+
+function LL2()
+    while _G.Lay2 do
+        for i, v in pairs(tcy) do
+            if v.Owner.Value == plr then
+                if not game:GetService("Workspace").Tycoons[v.Name]:FindFirstChildOfClass("Model") then
+                    local string_1 = "Load"
+                    local string_2 = "Layout2"
+                    local Target = game:GetService("ReplicatedStorage").Layouts
+                    Target:InvokeServer(string_1, string_2)
+                end
+            end
+        end
+        wait(0.2)  -- Adjust the delay to a suitable value to avoid excessive server requests
+    end
+end
+
+_G.Lay2 = false
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Layout 2",
+    CurrentValue = false,
+    Flag = "llc",
+    Callback = function(Value)
+        if Value then
+            _G.Lay2 = true
+            LL2()
+        else
+            _G.Lay2 = false
+        end
+    end,
+})
+
+local tcy = game.Workspace.Tycoons:GetChildren()
+local plr = game.Players.LocalPlayer.Name
+
+function LL3()
+    while _G.Lay3 do
+        for i, v in pairs(tcy) do
+            if v.Owner.Value == plr then
+                if not game:GetService("Workspace").Tycoons[v.Name]:FindFirstChildOfClass("Model") then
+                    local string_1 = "Load"
+                    local string_2 = "Layout3"
+                    local Target = game:GetService("ReplicatedStorage").Layouts
+                    Target:InvokeServer(string_1, string_2)
+                end
+            end
+        end
+        wait(0.2)  -- Adjust the delay to a suitable value to avoid excessive server requests
+    end
+end
+
+_G.Lay3 = false
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Layout 3",
+    CurrentValue = false,
+    Flag = "llc3",
+    Callback = function(Value)
+        if Value then
+            _G.Lay3 = true
+            LL3()
+        else
+            _G.Lay3 = false
+        end
+    end,
+})
+
+
+local Toggle = Tab:CreateToggle({
+    Name = "Always At Base",
+    CurrentValue = false,
+    Flag = "aab",
+    Callback = function(Value)
+        if Value then
+            wait(0.1)
+            game.Players.LocalPlayer.NearTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+            game.Players.LocalPlayer.ActiveTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+            if game.Players.LocalPlayer.NearTycoon.Value == nil then
+                if Value then
+                    wait(0.1)
+                    game.Players.LocalPlayer.NearTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+                end
+            end
+            if game.Players.LocalPlayer.ActiveTycoon.Value == nil then
+                if Value then
+                    wait(0.1)
+                    game.Players.LocalPlayer.ActiveTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+                end
+            end
+        else
+            wait(0.1)
+            game.Players.LocalPlayer.NearTycoon.Value = nil
+            game.Players.LocalPlayer.ActiveTycoon.Value = nil
+            if game.Players.LocalPlayer.NearTycoon.Value == nil then
+                if Value then
+                    wait(0.1)
+                    game.Players.LocalPlayer.NearTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+                end
+            end
+            if game.Players.LocalPlayer.ActiveTycoon.Value == nil then
+                if Value then
+                    wait(0.1)
+                    game.Players.LocalPlayer.ActiveTycoon.Value = game.Players.LocalPlayer.PlayerTycoon.Value
+                end
+            end
+        end
+    end,
+})
+
+
+
+local originalCFrame = nil
+local isTeleporting = false
+
+local Toggle = Tab:CreateToggle({
+    Name = "Teleport to Boxes",
+    CurrentValue = false,
+    Flag = "ttb",
+    Callback = function(Value)
+        if Value then
+            originalCFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+            isTeleporting = true
+            while isTeleporting do
+                wait(1)
+                local boxesFolder = workspace:FindFirstChild("Boxes")
+                if boxesFolder then
+                    for _, v in ipairs(boxesFolder:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+                        end
+                    end
+                end
+            end
+        else
+            if originalCFrame then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = originalCFrame
+            end
+            isTeleporting = false
+        end
+    end,
+})
+
+
+local Toggle = Tab:CreateToggle({
+    Name = "Auto Rebirth",
+    CurrentValue = false,
+    Flag = "autorb",
+    Callback = function(Value)
+        if Value == true then
+            while Value do
+                local args = {
+                    [1] = 26
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Rebirth"):InvokeServer(unpack(args))
+                wait(0.5)  -- Adjust the delay between rebirths to a suitable value
+            end
+        end
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "EX",
+    Range = { 0, 100 },
+    Increment = 10,
+    Suffix = "Tests",
+    CurrentValue = 10,
+    Flag = "Slider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        -- The function that takes place when the slider changes
+        -- The variable (Value) is a number which correlates to the value the slider is currently at
+    end,
+})
+
+--local Label = Tab:CreateLabel("Label Example")
+
+
+local Button = Tab:CreateButton({
+    Name = "Destroy UI",
+    Callback = function()
+        Rayfield:Destroy()
+    end,
+})
+local Tab = Window:CreateTab("Misc Funct", 4483362458) -- Title, Image
+local Section = Tab:CreateSection("Farms")
+local Button = Tab:CreateButton({
+    Name = "Withdraw All",
+    Callback = function()
+        game:GetService("ReplicatedStorage"):WaitForChild("DestroyAll"):InvokeServer()
+    end,
+})
+local Button = Tab:CreateButton({
+    Name = "Load Layout 1",
+    Callback = function()
+        local args = {
+            [1] = "Load",
+            [2] = "Layout1"
+        }
+
+        game:GetService("ReplicatedStorage"):WaitForChild("Layouts"):InvokeServer(unpack(args))
+    end,
+})
+local Button = Tab:CreateButton({
+    Name = "Load Layout 2",
+    Callback = function()
+        local args = {
+            [1] = "Load",
+            [2] = "Layout2"
+        }
+
+        game:GetService("ReplicatedStorage"):WaitForChild("Layouts"):InvokeServer(unpack(args))
+    end,
+})
+local Button = Tab:CreateButton({
+    Name = "Load Layout 3",
+    Callback = function()
+        local args = {
+            [1] = "Load",
+            [2] = "Layout3"
+        }
+
+        game:GetService("ReplicatedStorage"):WaitForChild("Layouts"):InvokeServer(unpack(args))
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "Speed",
+    Range = { 0, 250 },
+    Increment = 1,
+    Suffix = "Walkspeed",
+    CurrentValue = 16,
+    Flag = "Slider2", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        while Value do
+            wait(0.1)
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed =  Value
+        end
+    end,
+})
+
+local Slider = Tab:CreateSlider({
+    Name = "JumpPower",
+    Range = { 0, 250 },
+    Increment = 1,
+    Suffix = "JumpPower",
+    CurrentValue = 50,
+    Flag = "Slider3", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        while Value do
+            wait(0.1)
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower =  Value
+        end
+    end,
+})
+
+local Toggle = Tab:CreateToggle({
+    Name = "Walk To Boxes",
+    CurrentValue = false,
+    Flag = "wtb",
+    Callback = function(Value)
+        if Value then
+            repeat
+                wait(0.5)
+                local boxesFolder = workspace:FindFirstChild("Boxes")
+                if boxesFolder then
+                    local currentBox = nil
+                    for _, v in ipairs(boxesFolder:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            currentBox = v
+                            break
+                        end
+                    end
+                    if currentBox then
+                        game.Players.LocalPlayer.Character.Humanoid:MoveTo(currentBox.Position)
+                    end
+                end
+            until not Value or not currentBox
+        end
+    end,
+})
+
+-- local Button = Tab:CreateButton({
+    --Name = "Stand In Place",
+    --Callback = function()
+        --game.Players.LocalPlayer.Character.Humanoid.PlatformStand = true
+    --end,
+--})
+
+--local Button = Tab:CreateButton({
+    --Name = "Sit",
+    --Callback = function()
+        --game.Players.LocalPlayer.Character.Humanoid.Sit = true
+    --end,
+--})
+
+--local Button = Tab:CreateButton({
+    --Name = "Get up",
+    --Callback = function()
+        --game.Players.LocalPlayer.Character.Humanoid.Sit = false
+        --game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
+    --end,
+--})
+
+-- AntiAfk
+
+if game.Players.LocalPlayer then
+    local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+   vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+   wait(1)
+   vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+end)
+end
+
+-- press B to increase upgrader size
+-- press G to decrease upgrader size
+-- press N to toggle
+-- press X to make upgrader beams invisible
+
+local Increase = Enum.KeyCode.B
+local Decrease = Enum.KeyCode.G
+local Toggle = Enum.KeyCode.N
+local Invis = Enum.KeyCode.X
+
+local UserInputService = game:GetService("UserInputService")
+local NotificationService = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/notification_gui_library.lua", true))()
+
+NotificationService.new("message", "Script loaded", "Script made by SlushPuppy, notification UI made by Jxereas", true, 3)
+
+local Size = 1
+local Toggled = false
+local InvisBeams = false
+
+local Tycoon
+
+for i, v in pairs(game.workspace.Tycoons:GetChildren()) do
+    if v.Owner.Value == game.Players.LocalPlayer.Name then
+        Tycoon = v
+    end
+end
+
+local originalSizes = {}
+local originalTransparencies = {}
+
+function GetUpgraders()
+    local Upgraders = {}
+
+    for i, v in pairs(Tycoon:GetChildren()) do
+        if v:FindFirstChild("Model") then
+            if v.Model:FindFirstChild("Upgrade") then
+                table.insert(Upgraders, v)
+            end
+        end
+    end
+
+    return Upgraders
+end
+
+function ResetUpgraders()
+    for _, upgrader in pairs(GetUpgraders()) do
+        for i, beam in ipairs(upgrader.Model:GetChildren()) do
+            if beam.Name == "Upgrade" then
+                beam.Size = originalSizes[upgrader.Name][i]
+            end
+        end
+    end
+end
+
+function IncreaseAllUpgraders()
+    for i, upgrader in pairs(GetUpgraders()) do
+        for _, beam in pairs(upgrader.Model:GetChildren()) do
+            if beam.Name == "Upgrade" then
+                beam.Size = Vector3.new(Size, Size, Size)
+            end
+        end
+    end
+end
+
+function TransAllUpgraders(Trans)
+    for _, upgrader in pairs(GetUpgraders()) do
+        for i, beam in ipairs(upgrader.Model:GetChildren()) do
+            if beam.Name == "Upgrade" then
+                if Trans ~= "Orig" then
+                    beam.Transparency = Trans
+                else
+                    beam.Transparency = originalTransparencies[upgrader.Name][i]
+                end
+            end
+        end
+    end
+end
+
+for _, upgrader in pairs(GetUpgraders()) do
+    originalSizes[upgrader.Name] = {}
+    originalTransparencies[upgrader.Name] = {}
+
+    for i, beam in ipairs(upgrader.Model:GetChildren()) do
+        if beam.Name == "Upgrade" then
+            originalSizes[upgrader.Name][i] = beam.Size
+            originalTransparencies[upgrader.Name][i] = beam.Transparency
+        end
+    end
+end
+
+Tycoon.ChildAdded:Connect(function(item)
+    if item:FindFirstChild("ItemId") then
+        if item:FindFirstChild("Model") then
+            if item.Model:FindFirstChild("Upgrade") then
+                originalSizes[item.Name] = {}
+                originalTransparencies[item.Name] = {}
+                for i, v in ipairs(item.Model:GetChildren()) do
+                    if v.Name == "Upgrade" then
+                        originalSizes[item.Name][i] = v.Size
+                        originalTransparencies[item.Name][i] = v.Transparency
+                    end
+                end
+            end
+        end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(key, gameProcessed)
+    if gameProcessed then return end
+
+    if key.KeyCode == Increase then
+        Size += 25
+        IncreaseAllUpgraders()
+        NotificationService.new("success", "Size increased", "Size successfully increased to "..tostring(Size - 1), true, 1)
+    elseif key.KeyCode == Decrease then
+        Size = Size - 25 >= 1 and Size - 25 or 1
+        IncreaseAllUpgraders()
+        NotificationService.new("success", "Size decreased", "Size successfully decreased to "..tostring(Size - 1), true, 1)
+    elseif key.KeyCode == Toggle then
+        if Toggled then
+            ResetUpgraders()
+            NotificationService.new("success", "Script turned off", "Script successfully turned off", true, 1)
+        else
+            IncreaseAllUpgraders()
+            NotificationService.new("success", "Script turned on", "Script successfully turned on", true, 1)
+        end
+        Toggled = not Toggled
+    elseif key.KeyCode == Invis then
+        InvisBeams = not InvisBeams
+        TransAllUpgraders(InvisBeams and 1 or "Orig")
+        NotificationService.new("success", "Upgrade beam visibility changed", "Upgrade beams are now "..(InvisBeams and "invisible" or "visible"), true, 1)
+    end
+end)
+
+while task.wait(0.1) do
+    if Toggled then
+        IncreaseAllUpgraders()
+    end
+end
+
+-- Extras
+
+-- getgenv().SecureMode = true -- Only Set To True If Games Are Detecting/Crashing The UI
+
+-- Rayfield:Destroy() -- Destroys UI
+
+-- Rayfield:LoadConfiguration() -- Enables Configuration Saving
+
+-- Section:Set("Section Example") -- Use To Update Section Text
+
+-- Button:Set("Button Example") -- Use To Update Button Text
+
+-- Toggle:Set(false) -- Use To Update Toggle
+
+-- Slider:Set(10) -- Use To Update Slider Value
+
+-- Label:Set("Label Example") -- Use To Update Label Text
+
+-- Paragraph:Set({Title = "Paragraph Example", Content = "Paragraph Example"}) -- Use To Update Paragraph Text
+
+-- Keybind:Set("RightCtrl") -- Keybind (string) -- Use To Update Keybind
+
+-- Dropdown:Set("Option 2") -- The new option value -- Use To Update/Set New Dropdowns
