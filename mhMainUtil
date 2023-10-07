@@ -450,7 +450,7 @@ function IncreaseAllUpgraders()
     for i, upgrader in pairs(GetUpgraders()) do
         for _, beam in pairs(upgrader.Model:GetChildren()) do
             if beam.Name == "Upgrade" then
-                beam.Size = Vector3.new(Size, Size, Size)
+                beam.Size = Vector3.new(200, 35, 1)
             end
         end
     end
