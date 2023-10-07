@@ -450,9 +450,10 @@ function IncreaseAllUpgraders()
     for i, upgrader in pairs(GetUpgraders()) do
         for _, beam in pairs(upgrader.Model:GetChildren()) do
             if beam.Name == "Upgrade" then
-                beam.Size = Vector3.new(200, 200, 15)
-                beam.Rotation = (0, 90, 0)
+                beam.Size = Vector3.new(600, 200, 15)
+				beam.Orientation = Vector3.new(0, 90, 0)
                 print(beam.Position)
+                beam.Transparency = 0.8
             end
         end
     end
